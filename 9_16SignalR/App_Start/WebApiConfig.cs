@@ -7,6 +7,7 @@ namespace _9_16SignalR
 {
     public static class WebApiConfig
     {
+
         public static void Register(HttpConfiguration config)
         {
             // Web API 設定和服務

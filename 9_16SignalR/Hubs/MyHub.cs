@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
+using System.Web.Mvc;
 using Microsoft.AspNet.SignalR;
 using System.Collections.Concurrent;
 using _9_16SignalR.Models;
@@ -15,6 +16,13 @@ namespace _9_16SignalR.Hubs
     {
 
         ApplicationDbContext db = new ApplicationDbContext();
+
+        //public void Send(string name, string message)
+        //{
+        //    // Call the addNewMessageToPage method to update clients.
+        //    Clients.All.addNewMessageToPage(name, message);
+        //}
+
 
         public void Send(string sendtouser, string message)
         {
@@ -32,12 +40,26 @@ namespace _9_16SignalR.Hubs
         private static readonly ConcurrentDictionary<string, ApplicationUser> Users =
         new ConcurrentDictionary<string, ApplicationUser>(StringComparer.InvariantCultureIgnoreCase);
 
+        public  string getConnectionId()
+        {
+            string id = Context.ConnectionId;
+            return id;
+        }
+
         public override Task OnConnected()
         {
             //string userName = Context.User.Identity.Name;
             string connectionId = Context.ConnectionId;
+            HttpContext con = HttpContext.Current;
+              
             var FromUserId = HttpContext.Current.User.Identity.GetUserId();
             ApplicationUser FromUser = db.Users.Find(FromUserId);
+
+            if(FromUser == null)
+            {
+                return base.OnConnected(); ;
+            }
+
 
             if (FromUser.ConnectionSignal == null)
             {
@@ -52,21 +74,21 @@ namespace _9_16SignalR.Hubs
 
                 ConnectionSignal c = new ConnectionSignal();
                 c.ConnectionIds = connectionId;
-                ConnectionSignal x = FromUser.ConnectionSignal.FirstOrDefault(d=>d.ConnectionIds.Equals(connectionId));
+                ConnectionSignal x = FromUser.ConnectionSignal.FirstOrDefault(d => d.ConnectionIds.Equals(connectionId));
 
-                if(x == null)
+                if (x == null)
                 {
-                    if (FromUser.ConnectionSignal.Count == 1)
-                    {
+                    //if (FromUser.ConnectionSignal.Count == 1)
+                    //{
 
-                    }
-                    else
-                    {
+                    //}
+                    //else
+                    //{
                         FromUser.ConnectionSignal.Add(c);
-                    }
+                    //}
                 }
 
-                
+
             }
             db.SaveChanges();
 
@@ -76,18 +98,25 @@ namespace _9_16SignalR.Hubs
         public override Task OnDisconnected(bool stopCalled)
         {
             string userName = Context.User.Identity.Name;
+            ApplicationUser FromUser = null;
+            try
+            {
+                 FromUser = db.Users.FirstOrDefault(u => u.Email.Equals(userName));
 
-            ApplicationUser FromUser = db.Users.FirstOrDefault(u=>u.Email.Equals(userName));
-
+            }catch(Exception e)
+            {
+                
+            }
+            
             string connectionId = Context.ConnectionId;
-          
-             
+
+
 
             if (FromUser != null)
             {
                 lock (FromUser.ConnectionSignal)
                 {
-                    ConnectionSignal cs =  db.ConnectionSignal.FirstOrDefault(c => c.ConnectionIds.Equals(connectionId));
+                    ConnectionSignal cs = db.ConnectionSignal.FirstOrDefault(c => c.ConnectionIds.Equals(connectionId));
                     db.ConnectionSignal.Remove(cs);
                 }
             }

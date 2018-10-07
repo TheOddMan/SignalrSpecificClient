@@ -38,7 +38,7 @@ namespace _9_16SignalR.Models
     {
         public int id { get; set; }
         public string ConnectionIds { get; set; }
-
+        public string sessionId { get; set; }
         public virtual ApplicationUser user { get; set; }
     }
 }

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Globalization;
-using System.Linq;
-using System.Security.Claims;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
@@ -9,10 +6,13 @@ using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
 using _9_16SignalR.Models;
+using Microsoft.AspNet.SignalR.Infrastructure;
+using Microsoft.AspNet.SignalR;
+using _9_16SignalR.Hubs;
 
 namespace _9_16SignalR.Controllers
 {
-    [Authorize]
+    [System.Web.Mvc.Authorize]
     public class AccountController : Controller
     {
         private ApplicationSignInManager _signInManager;
@@ -72,13 +72,30 @@ namespace _9_16SignalR.Controllers
             {
                 return View(model);
             }
+            SignInStatus result = SignInStatus.Failure;
+            ApplicationUser user = db.Users.FirstOrDefault(b => b.Email.Equals(model.Email));
+            //if (user.login)
+            //{
+            //    ModelState.AddModelError("", "已在其他地方進行過登入 登入失敗");
+            //    return View(model);
+            //}
+            //else
+            //{
+               
+            //    result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
+
+            //}
+            result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
 
             // 這不會計算為帳戶鎖定的登入失敗
             // 若要啟用密碼失敗來觸發帳戶鎖定，請變更為 shouldLockout: true
-            var result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
             switch (result)
             {
                 case SignInStatus.Success:
+                    string userMail = model.Email;
+                    ApplicationUser u = db.Users.FirstOrDefault(x=>x.Email.Equals(userMail));
+                    u.login = true;
+                    db.SaveChanges();
                     return RedirectToLocal(returnUrl);
                 case SignInStatus.LockedOut:
                     return View("Lockout");
@@ -384,16 +401,37 @@ namespace _9_16SignalR.Controllers
             ViewBag.ReturnUrl = returnUrl;
             return View(model);
         }
-
+        ApplicationDbContext db = new ApplicationDbContext();
         //
         // POST: /Account/LogOff
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult LogOff()
+        public ActionResult LogOff(string cid)
         {
+            string userId = User.Identity.GetUserId();
+            ApplicationUser user = db.Users.Find(userId);
+            user.ConnectionSignal.ToList().ForEach(x =>
+            {
+                db.ConnectionSignal.Remove(x);
+            });
+            db.SaveChanges();
+            //if(cid.Equals("") || cid == null)
+            //{
+
+            //}
+            //else
+            //{
+            //    ConnectionSignal cs = db.ConnectionSignal.FirstOrDefault(x => x.ConnectionIds.Equals(cid));
+            //    db.ConnectionSignal.Remove(cs);
+            //    db.SaveChanges();
+            //}
             AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+            string sessionId = this.Session.SessionID;
+           
+
             return RedirectToAction("Index", "Home");
         }
+        
 
         //
         // GET: /Account/ExternalLoginFailure

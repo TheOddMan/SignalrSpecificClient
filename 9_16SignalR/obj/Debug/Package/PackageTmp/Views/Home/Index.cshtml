@@ -1,0 +1,106 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+<h2>聊天室</h2>
+
+<div class="col-md-12">
+    <h2>Say Hello</h2>
+    <div id="messages"></div>
+    <hr />
+
+    <div class="form-group">
+        <label for="email">User Email:</label>
+        <input type="email" class="form-control" id="toUser" value="" placeholder="shashangka@gmail.com" />
+    </div>
+    <div class="form-group">
+        <label for="pwd">Message:</label>
+        <input type="password" class="form-control" id="myMessage" value="" placeholder="message" />
+    </div>
+
+    <button type="submit" class="btn btn-default" id="submit">Submit</button>
+
+    <ul id="discussion"></ul>
+</div>
+
+@*<div class="container">
+    <input type="text" id="name" class="form-control" placeholder="姓名" />
+    <input type="text" id="message" class="form-control" placeholder="輸入內容" />
+    <input type="button" id="sendmessage" value="Send" class="btn btn-primary" />
+    <ul id="discussion"></ul>
+</div>*@
+@section scripts {
+    <script src="~/Scripts/jquery.signalR-2.3.0.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script>
+
+        $("#submit").click(function (e) {
+            e.preventDefault();
+
+            var message = $("#myMessage").val();
+            var sendtouser = $("#toUser").val();
+
+            //$("#messages").append("<p>" + message + "</p>");
+
+            var Notification = { UserID: sendtouser, Message: message };
+
+            //$.ajax({
+            //    type: "POST",
+            //    url: "/api/Values/SendNotification",
+            //    data: JSON.stringify(Notification),
+            //    contentType: 'application/json; charset=utf-8',
+            //    success: function (data) {
+            //        //reset field
+            //        $("#myMessage").val("");
+            //    },
+            //    error: function () {
+            //        alert("Error occured!!")
+            //    }
+            //});
+
+        });
+
+        //$(document).ready(function () {
+        //    var hub = $.connection.myHub;
+        //    $.connection.hub.start()
+        //        .done(function () {
+        //            console.log("Hub Connected!");
+
+        //        })
+        //        .fail(function () {
+        //            console.log("Could not Connect!");
+        //        });
+
+        //    hub.client.broadcaastNotif = function (message) {
+        //        $('#discussion').append(message);
+        //    };
+        //});
+
+        $(function () {
+            var testHub = $.connection.myHub;
+
+            testHub.client.addNewMessageToPage = function (FromUserName, message) {
+                $('#discussion').append('<li><strong>' + htmlEncode(name)
+                    + '</strong>: ' + htmlEncode(message) + '</li>');
+            };
+
+            $('#message').focus();
+
+            $.connection.hub.start().done(function () {
+                $('#submit').click(function () {
+                    var message = $("#myMessage").val();
+                    var sendtouser = $("#toUser").val();
+
+                    testHub.server.send(sendtouser,message);
+                    $('#message').val('').focus();
+                });
+            });
+
+        });
+
+        function htmlEncode(value) {
+            var encodedValue = $('<div />').text(value).html();
+            return encodedValue;
+        }
+    </script>
+}
